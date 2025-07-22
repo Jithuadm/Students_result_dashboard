@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}{{ student.name }} - Student Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('results') }}">Results</a></li>
+                <li class="breadcrumb-item active">{{ student.name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Student Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h2><i class="fas fa-user-graduate me-2"></i>{{ student.name }}</h2>
+                        <p class="mb-0">
+                            <i class="fas fa-id-card me-2"></i>Roll No: {{ student.roll_no }} | 
+                            <i class="fas fa-school me-2"></i>Class: {{ student.class_name }}
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="btn-group">
+                            <a href="{{ url_for('enter_marks') }}?student={{ student.id }}" class="btn btn-light">
+                                <i class="fas fa-edit me-1"></i>Edit Marks
+                            </a>
+                            <button class="btn btn-light" onclick="printReport()">
+                                <i class="fas fa-print me-1"></i>Print
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if marks_data %}
+<!-- Performance Summary -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-primary">{{ total_marks }}</h3>
+                <p class="mb-0">Total Marks</p>
+                <small class="text-muted">out of {{ total_max_marks }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-success">{{ percentage }}%</h3>
+                <p class="mb-0">Percentage</p>
+                <div class="progress mt-2">
+                    <div class="progress-bar bg-success" style="width: {{ percentage }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3>
+                    <span class="badge {{ 'bg-success' if grade in ['A+', 'A'] else 'bg-info' if grade in ['B+', 'B'] else 'bg-warning' if grade == 'C' else 'bg-secondary' if grade == 'D' else 'bg-danger' if grade == 'F' else 'bg-secondary' }} fs-4">
+                        {{ grade }}
+                    </span>
+                </h3>
+                <p class="mb-0">Grade</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-info">{{ marks_data|length }}</h3>
+                <p class="mb-0">Subjects</p>
+                <small class="text-muted">completed</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Subject-wise Performance -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Subject-wise Performance</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="performanceChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-trophy me-2"></i>Performance Analysis</h5>
+            </div>
+            <div class="card-body">
+                {% set highest_mark = marks_data|map(attribute='marks')|max %}
+                {% set lowest_mark = marks_data|map(attribute='marks')|min %}
+                {% set highest_subject = marks_data|selectattr('marks', 'equalto', highest_mark)|first %}
+                {% set lowest_subject = marks_data|selectattr('marks', 'equalto', lowest_mark)|first %}
+                
+                <div class="mb-3">
+                    <h6 class="text-success">
+                        <i class="fas fa-arrow-up me-1"></i>Strongest Subject
+                    </h6>
+                    <p class="mb-0">{{ highest_subject.subject_name }}</p>
+                    <small class="text-muted">{{ highest_mark }}/{{ highest_subject.max_marks }} ({{ "%.1f"|format((highest_mark/highest_subject.max_marks)*100) }}%)</small>
+                </div>
+                
+                <div class="mb-3">
+                    <h6 class="text-warning">
+                        <i class="fas fa-arrow-down me-1"></i>Needs Improvement
+                    </h6>
+                    <p class="mb-0">{{ lowest_subject.subject_name }}</p>
+                    <small class="text-muted">{{ lowest_mark }}/{{ lowest_subject.max_marks }} ({{ "%.1f"|format((lowest_mark/lowest_subject.max_marks)*100) }}%)</small>
+                </div>
+                
+                <div>
+                    <h6 class="text-info">
+                        <i class="fas fa-chart-line me-1"></i>Overall Status
+                    </h6>
+                    <p class="mb-0">
+                        {% if percentage >= 75 %}
+                            <span class="badge bg-success">Excellent Performance</span>
+                        {% elif percentage >= 60 %}
+                            <span class="badge bg-info">Good Performance</span>
+                        {% elif percentage >= 40 %}
+                            <span class="badge bg-warning">Average Performance</span>
+                        {% else %}
+                            <span class="badge bg-danger">Needs Attention</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Marks Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-table me-2"></i>Detailed Marks</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Subject</th>
+                                <th>Marks Obtained</th>
+                                <th>Maximum Marks</th>
+                                <th>Percentage</th>
+                                <th>Grade</th>
+                                <th>Performance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mark in marks_data %}
+                            {% set subject_percentage = (mark.marks / mark.max_marks) * 100 %}
+                            {% set subject_grade = 'A+' if subject_percentage >= 90 else 'A' if subject_percentage >= 80 else 'B+' if subject_percentage >= 70 else 'B' if subject_percentage >= 60 else 'C' if subject_percentage >= 50 else 'D' if subject_percentage >= 40 else 'F' %}
+                            <tr>
+                                <td><strong>{{ mark.subject_name }}</strong></td>
+                                <td>{{ mark.marks }}</td>
+                                <td>{{ mark.max_marks }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 80px; height: 8px;">
+                                            <div class="progress-bar" style="width: {{ subject_percentage }}%"></div>
+                                        </div>
+                                        {{ "%.1f"|format(subject_percentage) }}%
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if subject_grade in ['A+', 'A'] else 'bg-info' if subject_grade in ['B+', 'B'] else 'bg-warning' if subject_grade == 'C' else 'bg-secondary' if subject_grade == 'D' else 'bg-danger' }}">
+                                        {{ subject_grade }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if subject_percentage >= 80 %}
+                                        <i class="fas fa-smile text-success" title="Excellent"></i>
+                                    {% elif subject_percentage >= 60 %}
+                                        <i class="fas fa-meh text-info" title="Good"></i>
+                                    {% elif subject_percentage >= 40 %}
+                                        <i class="fas fa-frown text-warning" title="Average"></i>
+                                    {% else %}
+                                        <i class="fas fa-sad-tear text-danger" title="Poor"></i>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th>Total</th>
+                                <th>{{ total_marks }}</th>
+                                <th>{{ total_max_marks }}</th>
+                                <th>{{ percentage }}%</th>
+                                <th>
+                                    <span class="badge {{ 'bg-success' if grade in ['A+', 'A'] else 'bg-info' if grade in ['B+', 'B'] else 'bg-warning' if grade == 'C' else 'bg-secondary' if grade == 'D' else 'bg-danger' }}">
+                                        {{ grade }}
+                                    </span>
+                                </th>
+                                <th>
+                                    {% if percentage >= 75 %}
+                                        <i class="fas fa-trophy text-warning" title="Excellent"></i>
+                                    {% elif percentage >= 60 %}
+                                        <i class="fas fa-medal text-info" title="Good"></i>
+                                    {% elif percentage >= 40 %}
+                                        <i class="fas fa-thumbs-up text-warning" title="Average"></i>
+                                    {% else %}
+                                        <i class="fas fa-exclamation-triangle text-danger" title="Needs Improvement"></i>
+                                    {% endif %}
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- No Marks Available -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                <h4>No Marks Available</h4>
+                <p class="text-muted">Marks haven't been entered for this student yet.</p>
+                <a href="{{ url_for('enter_marks') }}?student={{ student.id }}" class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i>Enter Marks Now
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if marks_data %}
+<script>
+// Performance Chart
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    
+    const subjects = {{ marks_data|map(attribute='subject_name')|list|tojson }};
+    const marks = {{ marks_data|map(attribute='marks')|list|tojson }};
+    const maxMarks = {{ marks_data|map(attribute='max_marks')|list|tojson }};
+    
+    // Calculate percentages
+    const percentages = marks.map((mark, index) => (mark / maxMarks[index]) * 100);
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: subjects,
+            datasets: [{
+                label: 'Marks Obtained',
+                data: marks,
+                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }, {
+                label: 'Maximum Marks',
+                data: maxMarks,
+                backgroundColor: 'rgba(255, 206, 86, 0.3)',
+                borderColor: 'rgba(255, 206, 86, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: Math.max(...maxMarks) + 10
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            if (context.datasetIndex === 0) {
+                                const percentage = ((context.raw / maxMarks[context.dataIndex]) * 100).toFixed(1);
+                                return `Percentage: ${percentage}%`;
+                            }
+                            return '';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+// Print functionality
+function printReport() {
+    window.print();
+}
+
+// Print styles
+const printStyles = `
+    @media print {
+        .btn, .btn-group, nav, footer, .breadcrumb { display: none !important; }
+        .card { border: 1px solid #ddd !important; box-shadow: none !important; margin-bottom: 20px !important; }
+        .card-header { background-color: #f8f9fa !important; color: #000 !important; }
+        body { font-size: 12px; }
+        .table { font-size: 11px; }
+        h1, h2, h3, h4, h5, h6 { color: #000 !important; }
+        .text-primary, .text-success, .text-info, .text-warning, .text-danger { color: #000 !important; }
+        .bg-primary { background-color: #f8f9fa !important; color: #000 !important; }
+        .progress { display: none !important; }
+        canvas { display: none !important; }
+    }
+`;
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = printStyles;
+document.head.appendChild(styleSheet);
+</script>
+{% endif %}
+{% endblock %}

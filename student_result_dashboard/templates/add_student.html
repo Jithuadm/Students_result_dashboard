@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Add Student - Student Result Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-user-plus me-2"></i>
+            Add New Student
+        </h1>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-user me-2"></i>Student Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">
+                            <i class="fas fa-user me-1"></i>Student Name *
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" required 
+                               placeholder="Enter student's full name">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="roll_no" class="form-label">
+                            <i class="fas fa-id-card me-1"></i>Roll Number *
+                        </label>
+                        <input type="text" class="form-control" id="roll_no" name="roll_no" required 
+                               placeholder="Enter unique roll number">
+                        <div class="form-text">Roll number must be unique for each student.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="class_name" class="form-label">
+                            <i class="fas fa-school me-1"></i>Class *
+                        </label>
+                        <select class="form-select" id="class_name" name="class_name" required>
+                            <option value="">Select Class</option>
+                            <option value="Class 1">Class 1</option>
+                            <option value="Class 2">Class 2</option>
+                            <option value="Class 3">Class 3</option>
+                            <option value="Class 4">Class 4</option>
+                            <option value="Class 5">Class 5</option>
+                            <option value="Class 6">Class 6</option>
+                            <option value="Class 7">Class 7</option>
+                            <option value="Class 8">Class 8</option>
+                            <option value="Class 9">Class 9</option>
+                            <option value="Class 10">Class 10</option>
+                            <option value="Class 11">Class 11</option>
+                            <option value="Class 12">Class 12</option>
+                        </select>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Add Student
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions Card -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle me-2"></i>Instructions</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>All fields marked with (*) are required</li>
+                    <li>Roll number must be unique - no two students can have the same roll number</li>
+                    <li>After adding a student, you can enter their marks from the "Enter Marks" section</li>
+                    <li>Student information can be updated later if needed</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-bolt me-2"></i>What's Next?</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <a href="{{ url_for('enter_marks') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-edit me-2"></i>Enter Marks
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <a href="{{ url_for('results') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-chart-bar me-2"></i>View Results
+                        </a>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-home me-2"></i>Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Form validation
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const rollNoInput = document.getElementById('roll_no');
+    
+    // Auto-format roll number
+    rollNoInput.addEventListener('input', function() {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+    
+    // Form submission validation
+    form.addEventListener('submit', function(e) {
+        const name = document.getElementById('name').value.trim();
+        const rollNo = document.getElementById('roll_no').value.trim();
+        const className = document.getElementById('class_name').value;
+        
+        if (!name || !rollNo || !className) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return;
+        }
+        
+        if (rollNo.length < 2) {
+            e.preventDefault();
+            alert('Roll number must be at least 2 characters long.');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

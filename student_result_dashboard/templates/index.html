@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Student Result Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            Dashboard Overview
+        </h1>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_students }}</h4>
+                        <p class="mb-0">Total Students</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>5</h4>
+                        <p class="mb-0">Subjects</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-book fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 id="avg-percentage">0%</h4>
+                        <p class="mb-0">Avg Percentage</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-percentage fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 id="total-grades">0</h4>
+                        <p class="mb-0">Grades Assigned</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-medal fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Grade Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="gradeChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Subject-wise Average</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="subjectChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Results -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-clock me-2"></i>Recent Results</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_results %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Roll No</th>
+                                <th>Class</th>
+                                <th>Subjects</th>
+                                <th>Average Marks</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in recent_results %}
+                            <tr>
+                                <td class="student-name">{{ result.name }}</td>
+                                <td class="student-roll">{{ result.roll_no }}</td>
+                                <td>{{ result.class_name }}</td>
+                                <td>{{ result.subjects_count or 0 }}</td>
+                                <td>
+                                    {% if result.avg_marks %}
+                                        {{ "%.1f"|format(result.avg_marks) }}
+                                    {% else %}
+                                        <span class="text-muted">No marks</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if result.subjects_count > 0 %}
+                                        <span class="badge bg-success">Complete</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>No student results available yet.</p>
+                    <a href="{{ url_for('add_student') }}" class="btn btn-primary">Add First Student</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('add_student') }}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-user-plus me-2"></i>Add Student
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('enter_marks') }}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-edit me-2"></i>Enter Marks
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{{ url_for('results') }}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-chart-bar me-2"></i>View Results
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-warning w-100" onclick="refreshCharts()">
+                            <i class="fas fa-sync me-2"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let gradeChart, subjectChart;
+
+// Load chart data
+async function loadChartData() {
+    try {
+        const response = await fetch('/api/chart_data');
+        const data = await response.json();
+        
+        // Update statistics
+        const totalGrades = Object.values(data.grade_distribution).reduce((a, b) => a + b, 0);
+        document.getElementById('total-grades').textContent = totalGrades;
+        
+        const avgPercentage = Object.values(data.subject_averages).reduce((a, b) => a + b, 0) / Object.keys(data.subject_averages).length;
+        document.getElementById('avg-percentage').textContent = isNaN(avgPercentage) ? '0%' : avgPercentage.toFixed(1) + '%';
+        
+        // Grade Distribution Chart
+        const gradeCtx = document.getElementById('gradeChart').getContext('2d');
+        if (gradeChart) gradeChart.destroy();
+        
+        gradeChart = new Chart(gradeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(data.grade_distribution),
+                datasets: [{
+                    data: Object.values(data.grade_distribution),
+                    backgroundColor: [
+                        '#28a745', '#17a2b8', '#ffc107', '#fd7e14', '#dc3545', '#6f42c1'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Subject Average Chart
+        const subjectCtx = document.getElementById('subjectChart').getContext('2d');
+        if (subjectChart) subjectChart.destroy();
+        
+        subjectChart = new Chart(subjectCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(data.subject_averages),
+                datasets: [{
+                    label: 'Average Marks',
+                    data: Object.values(data.subject_averages),
+                    backgroundColor: '#007bff',
+                    borderColor: '#0056b3',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error loading chart data:', error);
+    }
+}
+
+function refreshCharts() {
+    loadChartData();
+}
+
+// Load charts on page load
+document.addEventListener('DOMContentLoaded', loadChartData);
+</script>
+{% endblock %}

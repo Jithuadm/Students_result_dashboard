@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+
+{% block title %}Results - Student Result Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-chart-bar me-2"></i>
+            Student Results
+        </h1>
+    </div>
+</div>
+
+{% if results %}
+<!-- Filter and Search -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search by name or roll number...">
+        </div>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" id="classFilter">
+            <option value="">All Classes</option>
+            {% for result in results %}
+                {% if result.class_name not in (results[:loop.index-1]|map(attribute='class_name')|list) %}
+                <option value="{{ result.class_name }}">{{ result.class_name }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" id="gradeFilter">
+            <option value="">All Grades</option>
+            <option value="A+">A+</option>
+            <option value="A">A</option>
+            <option value="B+">B+</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="F">F</option>
+        </select>
+    </div>
+</div>
+
+<!-- Results Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-table me-2"></i>Results Summary</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportResults()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" onclick="printResults()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="resultsTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th onclick="sortTable(0)">
+                                    Rank <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="sortTable(1)">
+                                    Name <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="sortTable(2)">
+                                    Roll No <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="sortTable(3)">
+                                    Class <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="sortTable(4)">
+                                    Total Marks <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="sortTable(5)">
+                                    Percentage <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="sortTable(6)">
+                                    Grade <i class="fas fa-sort"></i>
+                                </th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr data-class="{{ result.class_name }}" data-grade="{{ result.grade }}">
+                                <td>
+                                    {% if result.rank != 'N/A' %}
+                                        <span class="badge bg-primary">{{ result.rank }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td class="student-name">
+                                    <strong>{{ result.name }}</strong>
+                                </td>
+                                <td class="student-roll">{{ result.roll_no }}</td>
+                                <td>{{ result.class_name }}</td>
+                                <td>
+                                    {% if result.subjects_count > 0 %}
+                                        {{ result.total_marks }} / {{ result.subjects_count * 100 }}
+                                    {% else %}
+                                        <span class="text-muted">No marks</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if result.percentage > 0 %}
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress me-2" style="width: 60px; height: 8px;">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {{ result.percentage }}%"
+                                                     aria-valuenow="{{ result.percentage }}" 
+                                                     aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            {{ result.percentage }}%
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">0%</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if result.grade in ['A+', 'A'] else 'bg-info' if result.grade in ['B+', 'B'] else 'bg-warning' if result.grade == 'C' else 'bg-secondary' if result.grade == 'D' else 'bg-danger' if result.grade == 'F' else 'bg-secondary' }}">
+                                        {{ result.grade }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if result.subjects_count > 0 %}
+                                        <span class="badge bg-success">Complete</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('student_detail', student_id=result.id) }}" 
+                                           class="btn btn-outline-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('enter_marks') }}?student={{ result.id }}" 
+                                           class="btn btn-outline-primary" title="Edit Marks">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4>{{ results|length }}</h4>
+                <p class="mb-0">Total Students</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h4>{{ results|selectattr('subjects_count', 'gt', 0)|list|length }}</h4>
+                <p class="mb-0">Results Available</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4 id="avgPercentage">
+                    {% set total_percentage = results|selectattr('percentage', 'gt', 0)|map(attribute='percentage')|sum %}
+                    {% set count_with_marks = results|selectattr('percentage', 'gt', 0)|list|length %}
+                    {% if count_with_marks > 0 %}
+                        {{ "%.1f"|format(total_percentage / count_with_marks) }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </h4>
+                <p class="mb-0">Class Average</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h4>{{ results|selectattr('grade', 'in', ['A+', 'A'])|list|length }}</h4>
+                <p class="mb-0">Top Performers</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- No Results Message -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                <h4>No Results Available</h4>
+                <p class="text-muted">Add students and enter their marks to see results here.</p>
+                <div class="mt-3">
+                    <a href="{{ url_for('add_student') }}" class="btn btn-primary me-2">
+                        <i class="fas fa-user-plus me-2"></i>Add Students
+                    </a>
+                    <a href="{{ url_for('enter_marks') }}" class="btn btn-success">
+                        <i class="fas fa-edit me-2"></i>Enter Marks
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Search and Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const classFilter = document.getElementById('classFilter');
+    const gradeFilter = document.getElementById('gradeFilter');
+    const table = document.getElementById('resultsTable');
+    
+    if (searchInput && table) {
+        searchInput.addEventListener('keyup', filterTable);
+        classFilter.addEventListener('change', filterTable);
+        gradeFilter.addEventListener('change', filterTable);
+    }
+});
+
+function filterTable() {
+    const searchValue = document.getElementById('searchInput').value.toLowerCase();
+    const classValue = document.getElementById('classFilter').value;
+    const gradeValue = document.getElementById('gradeFilter').value;
+    const rows = document.querySelectorAll('#resultsTable tbody tr');
+    
+    rows.forEach(row => {
+        const name = row.cells[1].textContent.toLowerCase();
+        const rollNo = row.cells[2].textContent.toLowerCase();
+        const className = row.dataset.class;
+        const grade = row.dataset.grade;
+        
+        const matchesSearch = name.includes(searchValue) || rollNo.includes(searchValue);
+        const matchesClass = !classValue || className === classValue;
+        const matchesGrade = !gradeValue || grade === gradeValue;
+        
+        if (matchesSearch && matchesClass && matchesGrade) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// Table sorting
+let sortDirection = {};
+
+function sortTable(columnIndex) {
+    const table = document.getElementById('resultsTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    
+    // Toggle sort direction
+    sortDirection[columnIndex] = sortDirection[columnIndex] === 'asc' ? 'desc' : 'asc';
+    
+    rows.sort((a, b) => {
+        let aValue = a.cells[columnIndex].textContent.trim();
+        let bValue = b.cells[columnIndex].textContent.trim();
+        
+        // Handle numeric columns
+        if (columnIndex === 0 || columnIndex === 4 || columnIndex === 5) {
+            aValue = parseFloat(aValue.replace(/[^\d.-]/g, '')) || 0;
+            bValue = parseFloat(bValue.replace(/[^\d.-]/g, '')) || 0;
+        }
+        
+        if (sortDirection[columnIndex] === 'asc') {
+            return aValue > bValue ? 1 : -1;
+        } else {
+            return aValue < bValue ? 1 : -1;
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Update sort indicators
+    document.querySelectorAll('th i.fas').forEach(icon => {
+        icon.className = 'fas fa-sort';
+    });
+    
+    const currentIcon = document.querySelectorAll('th')[columnIndex].querySelector('i');
+    if (currentIcon) {
+        currentIcon.className = sortDirection[columnIndex] === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+    }
+}
+
+// Export functionality
+function exportResults() {
+    const table = document.getElementById('resultsTable');
+    let csv = 'Rank,Name,Roll No,Class,Total Marks,Percentage,Grade,Status\n';
+    
+    const rows = table.querySelectorAll('tbody tr');
+    rows.forEach(row => {
+        if (row.style.display !== 'none') {
+            const cells = row.querySelectorAll('td');
+            const rowData = [
+                cells[0].textContent.trim(),
+                cells[1].textContent.trim(),
+                cells[2].textContent.trim(),
+                cells[3].textContent.trim(),
+                cells[4].textContent.trim(),
+                cells[5].textContent.trim().replace('%', ''),
+                cells[6].textContent.trim(),
+                cells[7].textContent.trim()
+            ];
+            csv += rowData.join(',') + '\n';
+        }
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'student_results.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Print functionality
+function printResults() {
+    window.print();
+}
+
+// Print styles
+const printStyles = `
+    @media print {
+        .btn, .card-header .btn, nav, footer { display: none !important; }
+        .card { border: none !important; box-shadow: none !important; }
+        .table { font-size: 12px; }
+        body { font-size: 12px; }
+    }
+`;
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = printStyles;
+document.head.appendChild(styleSheet);
+</script>
+{% endblock %}

@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Marks - Student Result Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-edit me-2"></i>
+            Enter Student Marks
+        </h1>
+    </div>
+</div>
+
+{% if students %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-pencil-alt me-2"></i>Select Student and Enter Marks</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="marksForm">
+                    <!-- Student Selection -->
+                    <div class="mb-4">
+                        <label for="student_id" class="form-label">
+                            <i class="fas fa-user me-1"></i>Select Student *
+                        </label>
+                        <select class="form-select" id="student_id" name="student_id" required onchange="loadStudentInfo()">
+                            <option value="">Choose a student...</option>
+                            {% for student in students %}
+                            <option value="{{ student.id }}" data-name="{{ student.name }}" data-roll="{{ student.roll_no }}" data-class="{{ student.class_name }}">
+                                {{ student.name }} ({{ student.roll_no }}) - {{ student.class_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Student Info Display -->
+                    <div id="studentInfo" class="alert alert-info d-none mb-4">
+                        <h6><i class="fas fa-info-circle me-2"></i>Student Information</h6>
+                        <div class="row">
+                            <div class="col-md-4"><strong>Name:</strong> <span id="studentName"></span></div>
+                            <div class="col-md-4"><strong>Roll No:</strong> <span id="studentRoll"></span></div>
+                            <div class="col-md-4"><strong>Class:</strong> <span id="studentClass"></span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Marks Entry -->
+                    <div id="marksSection" class="d-none">
+                        <h6 class="mb-3"><i class="fas fa-list me-2"></i>Enter Marks for Each Subject</h6>
+                        <div class="row">
+                            {% for subject in subjects %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <label for="marks_{{ subject.id }}" class="form-label">
+                                            <i class="fas fa-book me-1"></i>{{ subject.name }}
+                                            <small class="text-muted">(Max: {{ subject.max_marks }})</small>
+                                        </label>
+                                        <input type="number" class="form-control marks-input" 
+                                               id="marks_{{ subject.id }}" name="marks_{{ subject.id }}" 
+                                               min="0" max="{{ subject.max_marks }}" 
+                                               placeholder="Enter marks (0-{{ subject.max_marks }})"
+                                               onchange="calculateTotal()">
+                                        <div class="invalid-feedback">
+                                            Please enter marks between 0 and {{ subject.max_marks }}.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Summary -->
+                        <div class="card bg-light mt-4">
+                            <div class="card-body">
+                                <h6><i class="fas fa-calculator me-2"></i>Summary</h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <strong>Total Marks:</strong> <span id="totalMarks">0</span> / <span id="maxMarks">{{ subjects|length * 100 }}</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Percentage:</strong> <span id="percentage">0.0</span>%
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Grade:</strong> <span id="grade" class="badge bg-secondary">N/A</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Status:</strong> <span id="status" class="badge bg-secondary">Incomplete</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <button type="button" class="btn btn-secondary me-md-2" onclick="resetForm()">
+                                <i class="fas fa-undo me-1"></i>Reset
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Save Marks
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle me-2"></i>Instructions</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Select a student from the dropdown to begin entering marks</li>
+                    <li>Enter marks for each subject (0-100)</li>
+                    <li>The system will automatically calculate percentage and grade</li>
+                    <li>Click "Save Marks" to store the results</li>
+                    <li>You can update marks anytime by selecting the same student again</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- No Students Message -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                <h4>No Students Found</h4>
+                <p class="text-muted">You need to add students before entering marks.</p>
+                <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-2"></i>Add First Student
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadStudentInfo() {
+    const select = document.getElementById('student_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        // Show student info
+        document.getElementById('studentName').textContent = selectedOption.dataset.name;
+        document.getElementById('studentRoll').textContent = selectedOption.dataset.roll;
+        document.getElementById('studentClass').textContent = selectedOption.dataset.class;
+        document.getElementById('studentInfo').classList.remove('d-none');
+        document.getElementById('marksSection').classList.remove('d-none');
+        
+        // Reset form
+        resetMarks();
+    } else {
+        document.getElementById('studentInfo').classList.add('d-none');
+        document.getElementById('marksSection').classList.add('d-none');
+    }
+}
+
+function calculateTotal() {
+    const marksInputs = document.querySelectorAll('.marks-input');
+    let total = 0;
+    let filledCount = 0;
+    let maxTotal = {{ subjects|length * 100 }};
+    
+    marksInputs.forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        if (input.value.trim() !== '') {
+            total += value;
+            filledCount++;
+        }
+    });
+    
+    // Update display
+    document.getElementById('totalMarks').textContent = total;
+    
+    const percentage = filledCount > 0 ? (total / (filledCount * 100)) * 100 : 0;
+    document.getElementById('percentage').textContent = percentage.toFixed(1);
+    
+    // Calculate grade
+    const grade = calculateGrade(percentage);
+    const gradeElement = document.getElementById('grade');
+    gradeElement.textContent = grade;
+    gradeElement.className = 'badge ' + getGradeBadgeClass(grade);
+    
+    // Update status
+    const statusElement = document.getElementById('status');
+    if (filledCount === marksInputs.length && filledCount > 0) {
+        statusElement.textContent = 'Complete';
+        statusElement.className = 'badge bg-success';
+    } else if (filledCount > 0) {
+        statusElement.textContent = 'Partial';
+        statusElement.className = 'badge bg-warning';
+    } else {
+        statusElement.textContent = 'Incomplete';
+        statusElement.className = 'badge bg-secondary';
+    }
+}
+
+function calculateGrade(percentage) {
+    if (percentage >= 90) return 'A+';
+    if (percentage >= 80) return 'A';
+    if (percentage >= 70) return 'B+';
+    if (percentage >= 60) return 'B';
+    if (percentage >= 50) return 'C';
+    if (percentage >= 40) return 'D';
+    return 'F';
+}
+
+function getGradeBadgeClass(grade) {
+    switch(grade) {
+        case 'A+': case 'A': return 'bg-success';
+        case 'B+': case 'B': return 'bg-info';
+        case 'C': return 'bg-warning';
+        case 'D': return 'bg-secondary';
+        case 'F': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+function resetMarks() {
+    document.querySelectorAll('.marks-input').forEach(input => {
+        input.value = '';
+        input.classList.remove('is-invalid');
+    });
+    calculateTotal();
+}
+
+function resetForm() {
+    document.getElementById('student_id').value = '';
+    document.getElementById('studentInfo').classList.add('d-none');
+    document.getElementById('marksSection').classList.add('d-none');
+    resetMarks();
+}
+
+// Form validation
+document.getElementById('marksForm').addEventListener('submit', function(e) {
+    const studentId = document.getElementById('student_id').value;
+    if (!studentId) {
+        e.preventDefault();
+        alert('Please select a student first.');
+        return;
+    }
+    
+    const marksInputs = document.querySelectorAll('.marks-input');
+    let hasMarks = false;
+    let isValid = true;
+    
+    marksInputs.forEach(input => {
+        const value = parseFloat(input.value);
+        const max = parseFloat(input.max);
+        
+        if (input.value.trim() !== '') {
+            hasMarks = true;
+            if (isNaN(value) || value < 0 || value > max) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        }
+    });
+    
+    if (!hasMarks) {
+        e.preventDefault();
+        alert('Please enter marks for at least one subject.');
+        return;
+    }
+    
+    if (!isValid) {
+        e.preventDefault();
+        alert('Please check the marks entered. Some values are invalid.');
+        return;
+    }
+});
+
+// Real-time validation
+document.querySelectorAll('.marks-input').forEach(input => {
+    input.addEventListener('input', function() {
+        const value = parseFloat(this.value);
+        const max = parseFloat(this.max);
+        
+        if (this.value.trim() !== '' && (isNaN(value) || value < 0 || value > max)) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+        
+        calculateTotal();
+    });
+});
+</script>
+{% endblock %}
